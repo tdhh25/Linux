@@ -1,6 +1,8 @@
 # Linux
 
-## GCC编译过程
+## GCC
+
+### GCC编译过程
 
 1. 预处理（Preprocessing）
 - 作用：处理源代码中的预处理指令（如 #include、#define、#ifdef 等），生成展开后的代码
@@ -66,7 +68,7 @@ gcc hello.o -o hello
 gcc main.c utils.c -o app
 ```
 
-## GCC常用选项
+### GCC常用选项
 1. 基础编译选项
 
 |选项|说明|
@@ -182,6 +184,19 @@ gcc main.c utils.c -o app
     gcc -save-temps main.c -o app    # 保留预处理、汇编等中间文件
 ```
 
-## 为什么需要Makefile
+## Makefile
 
-## Makefile的规则
+### 为什么需要Makefile
+
+### Makefile的规则
+
+### Makefile的语法
+
+### Makefile的函数
+
+### 通用Makefile
+
+## Linux应用开发基础知识
+
+## Linux驱动开发基础知识
+
