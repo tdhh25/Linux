@@ -184,6 +184,39 @@ gcc main.c utils.c -o app
     gcc -save-temps main.c -o app    # 保留预处理、汇编等中间文件
 ```
 
+## 环境搭建
+
+### 双网卡的配置
+NAT网卡（虚拟网卡，Windows能访问外网, ubuntu就可以访问外网）保证ubuntu可以上网
+``` mermaid
+graph LR
+    start(开始) --> process1[ubuntu]
+    process1[ubuntu] --> process2[NAT]
+    process2[NAT] --> |网络请求|process3[Windows]
+    process3[Windows] --> |网卡|process4[外网]
+    process4[外网] --> |返回数据|process3[Windows]
+    process3[Windows] --> process2[NAT]
+    process2[NAT] --> process1[ubuntu]
+```
+
+桥接网卡（真实的网卡，通过usb网卡与开发板相连）保证ubuntu可以跟开发板互通
+桥接网卡的配置
+1. 增加网络适配器2，并设置为桥接模式
+<img src="images/网络适配器.png" alt="同级目录图片">
+
+2. 打开虚拟网络编辑器，指定网络适配器2的网卡为USB网卡
+<img src="images/虚拟网络编辑器.png" alt="同级目录图片">
+
+3. 手动设置ubuntu的ip地址为192.168.5.11
+<img src="images/设置ubuntu的ip.png" alt="同级目录图片">
+
+3. 手动设置windows的ip地址为192.168.5.10
+
+4. 用串口连接开发板，并设置开发板的ip
+    ifconfig eth0 192.168.5.9
+
+5. 开发板，ubuntu，windows三者互ping
+
 ## Makefile
 
 ### 为什么需要Makefile
