@@ -217,6 +217,33 @@ graph LR
 
 5. 开发板，ubuntu，windows三者互ping
 
+## 编译运行第一个驱动程序
+
+### 编译内核(//TODO)
+- 不同的开发板对应不同的配置文件，配置文件位于内核源码的arch/arm/configs/目录
+- 在arch/arm/boot目录下生成zImage
+- 输入以下命令编译内核
+    make mrproper
+    make 100ask_imx6ull_defconfig
+    make zImage -j4
+- 拷贝zImage到nfs_rootfs备用
+
+### 配置内核(//TODO)
+
+### 编译设备树
+- 在arch/arm/boot/dts 目录下生成设备树的二进制文件 100ask_imx6ull-14x14.dtb
+- 输入以下命令编译设备树
+    make dtbs
+- 拷贝100ask_imx6ull-14x14.dtb到nfs_rootfs备用
+
+### 将设备树，zImage，modules复制到开发板
+- cp /mnt/zImage /boot
+- cp /mnt/100ask_imx6ull-14x14.dtb /boot
+- cp /mnt/lib/modules /lib -rfd
+
+sync 将内容强制刷到FLASH
+reboot 重启
+
 ## Makefile
 
 ### 为什么需要Makefile
@@ -232,4 +259,3 @@ graph LR
 ## Linux应用开发基础知识
 
 ## Linux驱动开发基础知识
-
