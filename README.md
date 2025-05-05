@@ -290,5 +290,38 @@ Linux内核采用的是以模块化形式管理内核代码
 - 先加载模块A，再加载模块B
 - 先卸载模块B，再卸载模块A
 
+### 模块传参
+
+#### 原型
+module_param(name, type, perm)
+- name用来接收参数的变量名
+- type参数的数据类型
+- perm指定参数访问权限
+- 数据类型有
+  - bool
+  - invbool
+  - charp
+  - int
+  - long
+  - short
+  - uint
+  - ulong
+  - ushort
+
+module_param_string(name, string, len, perm)
+module_param_array(name, type, num_point, perm)
+MODULE_PARM_DESC(dbg, "boolean to enable debugging(0/1 == off/on)")
 
 
+
+#### sysfs
+即系统文件系统，内核给一些重要的资源创建的目录或文件，加载模块的时候会在/sys/module下创建一个同名的文件
+
+可以在/sys/module/模块名/parameters看到变量名
+可以在/sys/module/模块名/parameters/变量名/看到变量内容
+
+#### 验证
+sudo insmod param.ko string=tdhh
+sudo rmmod param.ko
+
+详见03_param
