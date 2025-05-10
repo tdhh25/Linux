@@ -263,7 +263,7 @@ reboot 重启
 ### 模块化编程
 Linux内核采用的是以模块化形式管理内核代码
 
-#### 编译加载查看命令
+#### 模块相关命令
 - 编译（make）
 - 显示模块（lsmod）
 - 安装/卸载模块（insmod/rmmod）
@@ -325,3 +325,148 @@ sudo insmod param.ko string=tdhh
 sudo rmmod param.ko
 
 详见03_param
+
+### 系统调用
+头文件：unistd.h
+
+读
+```c
+ssize_t read(int fd, void *buf, size_t count);
+功能：从文件描述符fd中读取count 字节的数据到buf缓冲区
+参数：
+- fd：文件描述符（如通过 open 打开的返回值）
+- buf：指向缓冲区的指针，用于存储读取的数据
+- count：期望读取的字节数
+返回值：
+成功：返回实际读取的字节数
+文件末尾：返回 0
+失败：返回 -1，并设置 errno 错误码134
+```
+
+写
+```c
+ssize_t write(int fd, const void *buf, size_t count);
+功能：将 buf 缓冲区中的 count 字节数据写入文件描述符 fd
+参数：
+fd：文件描述符
+buf：指向待写入数据的缓冲区指针。
+count：期望写入的字节数
+返回值：
+成功：返回实际写入的字节数
+失败：返回 -1，并设置 errno134
+
+```
+
+### 设备分类
+- 字符设备
+- 块设备
+- 网络设备
+
+### 字符设备
+
+#### 字符设备架构（//TODO）
+
+#### 设备号
+- 32位无符号整型，前12位是主设备号，后20位是次设备号
+
+#### 构造设备号的宏
+MKDEV(major, minor)
+- major主设备号
+- minor次设备号
+
+#### 创建/注销设备号
+int register_chrdev_region(dev_t from, unsigned count, const char* name)
+int unregister_chrdev_region(dev_t from, unsigned count)
+- from是起始设备号
+- count需要分配的连续设备号数量
+- 设备名称
+- 成功返回0，失败返回负值
+
+#### cdev
+- void cdev_init(struct cdev*, const struct file_operations*)
+- int cdev_add(struct cdev*, dev_t unsigned)
+- void cdev_del(struct cdev*)
+
+#### 手动创建设备节点
+mknod /dev/设备名 c 主设备号 次设备号
+- c代表字符设备
+- b就是块设备
+
+#### 更简单的创建字符设备的方法
+```c
+static inline int  register_chrdev(unsigned int major, const char* name, const struct file_operations* fops)
+static inline void unregister_chrdev(unsigned int major, const char* name)
+```
+
+实际register_chrdev调用了__register_chrdev实现了register_chrdev_region，cdev_alloc以及cdev_add的封装
+<img src="images/register_chrdev.png" alt="同级目录图片">
+
+#### 自动创建设备节点
+返回值判断（//TODO）
+```c
+static inline bool __must_check IS_ERR(const void *ptr) {
+    return IS_ERR_VALUE((unsigned long)ptr);
+}
+#define IS_ERR_VALUE(x) unlikely((unsigned long)(void *)(x) >= (unsigned long)-MAX_ERRNO)
+
+```
+
+设备节点的类
+```c
+#define class_create(owner, name)		\
+({						\
+	static struct lock_class_key __key;	\
+	__class_create(owner, name, &__key);	\
+})
+
+struct class *__class_create(struct module *owner, const char *name,
+			     struct lock_class_key *key)
+void class_destroy(struct class* cls)
+```
+
+设备节点
+```c
+struct device *device_create(struct class *class, struct device *parent,
+			     dev_t devt, void *drvdata, const char *fmt, ...)
+void device_destroy(struct class *class, dev_t devt)
+```
+
+#### 查看设备相关信息
+1. 查看 /sys/class 下的类信息
+class_create 会在 /sys/class 目录下生成对应的类目录
+```bash
+# 查看类是否存在
+ls -l /sys/class
+# 查看特定类下属性的属性
+ls -l /sys/class/特定类
+如果类创建成功，会在此目录下看到设备相关的属性和子目录
+```
+
+2. 查看 /dev 下的设备节点
+device_create 会在 /dev 目录下生成设备节点文件
+```bash
+# 查看字符设备节点是否存在
+ls -l /dev/设备节点
+```
+
+3. 查看 /proc/devices 中的注册设备
+register_chrdev 会将字符设备注册到内核
+```bash
+# 查看字符设备的注册信息
+cat /proc/devices
+```
+
+4. 查看 /sys/devices 中的设备详细信息
+device_create 生成的设备信息会记录在 /sys/devices/virtual/类的名称/字符设备的名称
+```bash
+# 查看设备节点的信息
+ls -l /sys/devices/virtual/类的名称/字符设备的名称
+dev是主设备号和次设备号，uevent是主设备，次设备号和字符设备名称
+```
+
+#### 用户到内核的安全拷贝
+```c
+inline long copy_to_user(void __user *to, const void *from, long n)
+inline long copy_from_user(void *to, const void __user *from, long n)
+-返回值：未成功拷贝的字节数，0代表完全成功
+```
