@@ -375,6 +375,7 @@ MKDEV(major, minor)
 - minor次设备号
 
 #### 创建/注销设备号
+int alloc_chrdev_region(dev_t *dev, unsigned baseminor, unsigned count,const char *name)
 int register_chrdev_region(dev_t from, unsigned count, const char* name)
 int unregister_chrdev_region(dev_t from, unsigned count)
 - from是起始设备号
@@ -383,6 +384,7 @@ int unregister_chrdev_region(dev_t from, unsigned count)
 - 成功返回0，失败返回负值
 
 #### cdev
+头文件：include <linux/cdev.h>
 - void cdev_init(struct cdev*, const struct file_operations*)
 - int cdev_add(struct cdev*, dev_t unsigned)
 - void cdev_del(struct cdev*)
@@ -408,7 +410,6 @@ static inline bool __must_check IS_ERR(const void *ptr) {
     return IS_ERR_VALUE((unsigned long)ptr);
 }
 #define IS_ERR_VALUE(x) unlikely((unsigned long)(void *)(x) >= (unsigned long)-MAX_ERRNO)
-
 ```
 
 设备节点的类
@@ -432,7 +433,14 @@ void device_destroy(struct class *class, dev_t devt)
 ```
 
 #### 查看设备相关信息
-1. 查看 /sys/class 下的类信息
+1. 查看 /proc/devices 中的注册设备
+register_chrdev 会将字符设备注册到内核
+```bash
+# 查看字符设备的注册信息
+cat /proc/devices
+```
+
+2. 查看 /sys/class 下的类信息
 class_create 会在 /sys/class 目录下生成对应的类目录
 ```bash
 # 查看类是否存在
@@ -442,25 +450,18 @@ ls -l /sys/class/特定类
 如果类创建成功，会在此目录下看到设备相关的属性和子目录
 ```
 
-2. 查看 /dev 下的设备节点
+3. 查看 /dev 下的设备节点
 device_create 会在 /dev 目录下生成设备节点文件
 ```bash
 # 查看字符设备节点是否存在
 ls -l /dev/设备节点
 ```
 
-3. 查看 /proc/devices 中的注册设备
-register_chrdev 会将字符设备注册到内核
-```bash
-# 查看字符设备的注册信息
-cat /proc/devices
-```
-
 4. 查看 /sys/devices 中的设备详细信息
 device_create 生成的设备信息会记录在 /sys/devices/virtual/类的名称/字符设备的名称
 ```bash
 # 查看设备节点的信息
-ls -l /sys/devices/virtual/类的名称/字符设备的名称
+cat /sys/devices/virtual/类的名称/字符设备的名称
 dev是主设备号和次设备号，uevent是主设备，次设备号和字符设备名称
 ```
 
@@ -470,3 +471,118 @@ inline long copy_to_user(void __user *to, const void *from, long n)
 inline long copy_from_user(void *to, const void __user *from, long n)
 -返回值：未成功拷贝的字节数，0代表完全成功
 ```
+
+### 设备树
+
+#### 基本概念
+设备树是描述硬件配置的数据结构，因为语法结构像树一样，所以叫做设备树
+
+DT: Device Tree
+dts： device tree source
+dtsi: device tree source include
+dtb: device tree blob
+dtc: device tree compiler
+
+dts、dtsi和dtb之间的关系：
+```mermaid
+graph LR
+A[dts、dtsi] ---> |DTC|B[dtb]
+```
+
+#### 编译设备树
+编译设备树  
+    
+    dtc -I dts -O dtb -o xxx.dtb xxx.dts
+
+反编译设备树
+    
+    dtc -I dtb -O dts -o xxx.dts xxx.dtb
+
+#### 设备树的语法
+- 节点名称
+    在对节点命名的时候，一般要体现设备的类型，比如网口命名成ethernet
+    对于名称一般要遵循下面的命令格式：
+
+        [标签]:<名称>[@<设备地址>]
+    其中，[标签]和[@<设备地址>]是可选项，<名称>是必选项，设备地址没有实际意义，只是方便阅读
+
+- #address-cell和#size-cells属性
+    #address-cell和#size-cells用来描述子节点中的reg信息中的地址和长度信息
+
+- reg属性
+    reg属性可以用来描述地址信息，比如寄存器的地址
+    reg属性的格式如下：
+
+        reg = <地址1 长度1 地址2 长度2>
+
+
+举例：
+
+    node1{
+        #address-cells = <1>;
+        #size-cells = <1>;
+        node1-child{
+            reg = <0x02200000 0x4000>
+        };
+    };
+    或者
+    node1{
+        #address-cells = <2>;
+        #size-cells = <0>;
+        node1-child{
+            reg = <0x00 0x01>
+        };
+    }; 
+
+- model属性
+    model属性的值是一个字符串，一般用model描述一些信息，比如设备的名称、名字
+
+- device_type属性
+    device_type属性的值是字符串，只用于cpu节点或者memory节点进行描述 
+
+    举例1：
+
+        memory@30000000 {
+            device_type = "memory";
+            reg = <0x30000000 0x4000000>;
+        };
+
+    举例2：
+
+        cpu1: cpu@1 {
+            device_type = "cpu";
+            compatible = "arm,cortex-a35", "arm,armv8";
+            reg = <0x0 0x1>;
+        };
+
+- chosen特殊节点
+    chosen节点是固件（如U-Boot）与操作系统之间传递配置信息的桥梁
+    典型属性：
+    
+        bootargs: 内核启动参数（如文件系统挂载、网络配置等）
+        stdout-path: 定义标准输出的设备路径（如串口）
+        initrd-start 和 initrd-end: 初始RAM磁盘的地址范围
+
+- aliases特殊节点
+    aliases特殊节点用来定义别名
+
+    举例：
+
+        aliases{
+            mmc0 = &sdmmc0;
+            mmc1 = &sdmmc1;
+            mmc2 = &sdhci;
+            serial0 = "/simp;e@fe000000/serial@11c500";
+        }
+
+- 自定义属性
+    设备树中规定的属性有时候并不能满足我们的需求，这时候我们可以自定义属性
+
+    举例：
+    
+        pinnum = <0 1 2 3 4>
+
+#### 中断
+- 在中断控制器中，必须有一个属性#interrupt-cells，表示其他节点如果使用这个中断控制器需要几个cell来表示使用哪一个中断
+- 在中断控制器中，必须有一个属性interrupt-controller，表示它是中断控制器
+- 在设备树中使用中断，需要使用属性interrupt-parent=<&xxx>表示中断信号链接的是哪个中断控制器
