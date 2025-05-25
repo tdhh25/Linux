@@ -215,18 +215,37 @@ graph LR
 4. 用串口连接开发板，并设置开发板的ip
     ifconfig eth0 192.168.5.9
 
+修改配置文件设置 IP，永久设置ip
+
+    vi /etc/network/interfaces
+输入
+
+    auto lo
+    iface lo inet loopback
+    auto eth0
+    iface eth0 inet static
+    address 192.168.5.9
+    netmask 255.255.255.0
+
+ifconfig查看ip是否设置成功
+
 5. 开发板，ubuntu，windows三者互ping
+
+### 开发板挂载 Ubuntu 的 NFS 目录
+ubuntu 的 IP 是 192.168.5.11，确保开发板能 ping 通 ubnutu 后，在开
+发板上执行以下命令挂载 NFS：
+mount -t nfs -o nolock,vers=3 192.168.5.11:/home/book/nfs_rootfs /mnt
 
 ## 编译运行第一个驱动程序
 
 ### 编译内核(//TODO)
 - 不同的开发板对应不同的配置文件，配置文件位于内核源码的arch/arm/configs/目录
 - 在arch/arm/boot目录下生成zImage
-- 输入以下命令编译内核
+- 进入到内核目录，输入以下命令编译内核
     make mrproper
     make 100ask_imx6ull_defconfig
     make zImage -j4
-- 拷贝zImage到nfs_rootfs备用
+- 拷贝zImage(路径是arch/arm/boot/zImage)到/home/user_name/nfs_rootfs备用
 
 ### 配置内核(//TODO)
 
@@ -235,6 +254,17 @@ graph LR
 - 输入以下命令编译设备树
     make dtbs
 - 拷贝100ask_imx6ull-14x14.dtb到nfs_rootfs备用
+
+### 编译模块
+  - 安装tree
+        
+        sudo apt install tree
+  - 输入以下命令编译设备树
+        
+        make modules
+  - 把模块安装在nfs目录"/home/user_name/nfs_rootfs"下
+
+        make ARCH=arm INSTALL_MOD_PATH=/home/book/nfs_rootfs modules_install
 
 ### 将设备树，zImage，modules复制到开发板
 - cp /mnt/zImage /boot
