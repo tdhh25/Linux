@@ -276,16 +276,6 @@ reboot 重启
 
 ## Makefile
 
-### 为什么需要Makefile
-
-### Makefile的规则
-
-### Makefile的语法
-
-### Makefile的函数
-
-### 通用Makefile
-
 ## Linux应用开发基础知识
 
 ### 文件IO
