@@ -288,6 +288,26 @@ reboot 重启
 
 ## Linux应用开发基础知识
 
+### 文件IO
+
+#### 文件IO分类
+
+标准IO
+    fopen/fread/fwrite/fflush/fclose等
+    在标准IO基础上封装，引入缓冲机制，优点是减少访问内核的次数，效率更高，缺点是实时性
+
+系统调用IO
+    open/read/write/close/lseek等
+
+#### 系统调用接口
+| 函数名 | 函数原型 | 描述 |
+|:---|:---|:---|
+| open | <pre>#include &lt;sys/types.h&gt;<br>#include &lt;sys/stat.h&gt;<br>#include &lt;fcntl.h&gt;<br><br>int open(const char *pathname, int flags);<br>int open(const char *pathname, int flags, mode_t mode);</pre> | **pathname**: 文件路径字符串<br>**flags**: 打开方式和行为控制<br>• O_RDONLY: 只读<br>• O_WRONLY: 只写<br>• O_RDWR: 读写<br>• O_CREAT: 文件不存在则创建<br>• O_APPEND: 追加写入<br>• O_TRUNC: 清空文件内容<br>• O_EXCL: 与 O_CREAT 联用，确保创建新文件<br>**mode**: 新文件权限(仅在 O_CREAT 时生效)，实际权限 = mode & ~umask |
+| read | <pre>#include &lt;unistd.h&gt;<br><br>ssize_t read(int fd, void *buf, size_t count);</pre> | **fd**: 文件描述符(open的返回值)<br>**buf**: 数据读取缓冲区<br>**count**: 请求读取的字节数<br><br>**返回值**:<br>• >0: 实际读取的字节数<br>• 0: 文件结束(EOF)<br>• -1: 出错(设置errno)<br><br>**注意**:<br>• 可能读取少于请求的字节数<br>• 非阻塞模式下可能立即返回 |
+| write | <pre>#include &lt;unistd.h&gt;<br><br>ssize_t write(int fd, const void *buf, size_t count);</pre> | **fd**: 文件描述符<br>**buf**: 要写入的数据缓冲区<br>**count**: 请求写入的字节数<br><br>**返回值**:<br>• >0: 实际写入的字节数<br>• -1: 出错(设置errno)<br><br>**注意**:<br>• 可能写入少于请求的字节数(如磁盘满)<br>• 使用 O_APPEND 时自动定位到文件末尾 |
+| close | <pre>#include &lt;unistd.h&gt;<br><br>int close(int fd);</pre> | **fd**: 要关闭的文件描述符<br><br>**返回值**:<br>• 0: 成功<br>• -1: 出错(设置errno)<br><br>**注意**:<br>• 关闭后文件描述符被释放<br>• 进程结束时自动关闭所有打开的文件<br>• 多次关闭同一fd会导致未定义行为 |
+| lseek | <pre>#include &lt;unistd.h&gt;<br>#include &lt;sys/types.h&gt;<br><br>off_t lseek(int fd, off_t offset, int whence);</pre> | **fd**: 文件描述符<br>**offset**: 偏移量<br>**whence**: 基准位置<br>• SEEK_SET: 文件开头<br>• SEEK_CUR: 当前位置<br>• SEEK_END: 文件结尾<br><br>**返回值**:<br>• ≥0: 新的文件偏移量<br>• -1: 出错(设置errno)<br><br>**注意**:<br>• 可用于创建"文件空洞"(大于文件的区域) |
+
 ## Linux驱动开发基础知识
 
 ### 模块化编程
@@ -584,6 +604,9 @@ A[dts、dtsi] ---> |DTC|B[dtb]
             compatible = "arm,cortex-a35", "arm,armv8";
             reg = <0x0 0x1>;
         };
+
+- compatible属性
+    表示“兼容”
 
 - chosen特殊节点
     chosen节点是固件（如U-Boot）与操作系统之间传递配置信息的桥梁
