@@ -56,17 +56,177 @@ graph TD
     style I fill:#f99,stroke:#333
     style M fill:#bbf,stroke:#333
 ```
-当一个设备（源主机）需要向同一局域网内的另一个设备（目标主机）发送数据时：源主机首先检查自己的ARP缓存表，如果在缓存中找不到目标IP对应的MAC地址，源主机就会在本地网络上广播一个ARP Request数据包。这个包大声询问：“谁的IP地址是 [目标IP]？请告诉我你的MAC地址！”
+IP协议
 
-局域网上的所有设备都会收到这个广播请求。
-
-拥有该目标IP地址的设备（目标主机）识别出自己的IP后，会向源主机单播回复一个 ARP响应（ARP Reply） 包：“嗨，我的IP是 [目标IP]，我的MAC地址是 [目标MAC]！”
-
-源主机收到响应后，将目标IP和目标MAC的映射关系存入自己的ARP缓存表。
-
-现在，源主机知道了目标设备的MAC地址，就可以正确封装以太网帧，将数据发送出去了
+TCP协议
 
 ### Socket编程
+
+#### 网络套接字
+网络套接字(Socket)是操作系统提供的**应用程序与网络协议栈之间的编程接口**，它允许不同主机（或同一主机）上的进程通过网络进行通信
+
+#### 常用结构体
+```c
+//旧
+struct sockaddr {
+    sa_family_t sa_family;
+    char        sa_data[14];
+}
+
+//新
+struct in_addr {
+    uint32_t       s_addr;     /* address in network byte order */
+};
+
+struct sockaddr_in {
+    sa_family_t    sin_family; /* address family: AF_INET */
+    in_port_t      sin_port;   /* port in network byte order */
+    struct in_addr sin_addr;   /* internet address */
+};
+
+```
+
+#### 常用函数
+
+```c
+#include <arpa/inet.h>
+
+// tcp/ip协议规定，网络数据流采用大端字节序
+uint32_t htonl(uint32_t hostlong);
+uint16_t htons(uint16_t hostshort);//host byte order to network byte order
+uint32_t ntohl(uint32_t netlong);
+uint16_t ntohs(uint16_t netshort);//network byte order to host byte order
+
+//ip地址转换
+/**
+ * =============================================================================
+ * @header  #include <arpa/inet.h>
+ *
+ * @brief   IP地址字符串转二进制格式 (可读字符串 → 网络字节序)
+ * 
+ * @param[in]   af      地址族 (Address Family):
+ *                      • AF_INET   → IPv4地址
+ *                      • AF_INET6  → IPv6地址
+ * 
+ * @param[in]   src     输入IP字符串指针
+ * 
+ * @param[out]  dst     输出转换后的网络字节序的IP地址
+ * 
+ * @return      状态码:
+ *              •  1 → 转换成功
+ *              •  0 → 输入无效 (非合法IP格式)
+ *              • -1 → 系统错误 (通过errno获取详情)
+ * 
+ * =============================================================================
+ */
+int inet_pton(int af, const char *src, void *dst);
+
+/**
+ * =============================================================================
+ * @header  #include <arpa/inet.h>
+ *
+ * @brief   inet_pton的逆序操作
+ * 
+ * @param[in]   af      地址族 (Address Family):
+ *                      • AF_INET   → IPv4地址
+ *                      • AF_INET6  → IPv6地址
+ * 
+ * @param[in]   src     输入网络字节序IP地址
+ * 
+ * @param[out]  dst     输出IP字符串
+ * 
+ * @param[out]  size    dst大小
+ * 
+ * @return      状态码:
+ *              •  dst  → 转换成功
+ *              •  NULL → 错误
+ * 
+ * =============================================================================
+ */
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
+
+//模型创建函数
+/**
+ * =============================================================================
+ * @header #include <sys/types.h> #include <sys/socket.h>
+ *
+ * @brief   创建一个套接字
+ * 
+ * @param[in]   domain      协议族 (Protocol Family):
+ *                          • AF_INET   → IPv4协议
+ *                          • AF_INET6  → IPv6协议
+ *                          • AF_UNIX   → 本地套接字通信
+ *
+ * @param[in]   type        套接字类型
+ *                          • SOCK_STREAM   → 面向连接的可靠字节流（TCP）
+ *                          • SOCK_DGRAM    → 无连接的数据报服务（UDP）
+ *                          • SOCK_RAW      → 原始套接字
+ * 
+ * @param[in]   protocol    指定协议
+ *                          • 通常设为 0（表示根据 domain 和 type 选择默认协议）
+ *                          • IPPROTO_TCP - TCP 协议
+ *                          • IPPROTO_UDP - UDP 协议
+ * 
+ * @return      状态码:
+ *              •  fd   → 返回新创建的套接字文件描述符
+ *              •  -1   → 失败，并设置errno
+ * 
+ * =============================================================================
+ */
+int socket(int domain, int type, int protocol);
+
+/**
+ * =============================================================================
+ * @header #include <sys/types.h> #include <sys/socket.h>
+ *
+ * @brief   将套接字与特定的 IP 地址和端口号关联起来，为套接字分配一个本地名称
+ * 
+ * @param[in]   sockfd      socket() 返回的套接字文件描述符
+ *
+ * @param[in]   addr        指向包含地址信息的结构体指针
+ * 
+ * @param[in]   addrlen     地址结构体的长度
+ * 
+ * @return      状态码:
+ *              •  0    → 成功
+ *              •  -1   → 失败，并设置errno
+ * 
+ * =============================================================================
+ */
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+
+
+```
+
+#### socket模型创建流程
+```mermaid
+graph TD
+    %% ================== 客户端流程 ==================
+    subgraph TCP客户端
+        J[创建socket] --> K[connect]
+        K -->|连接成功| L[发送请求 write]
+        L --> M[接收响应 read]
+        M --> N[关闭连接 close]
+    end
+
+    %% ================== 服务端流程 ==================
+    subgraph TCP服务端
+        A[创建socket] --> B[bind]
+        B --> C[listen]
+        C --> D[accept 等待连接]
+        D -->|新连接| E[接收请求 read]
+        E --> F[处理请求]
+        F --> G[发送响应 write]
+        G --> H{继续处理?}
+        H -->|是| E
+        H -->|否| I[关闭连接 close]
+    end
+
+    %% ================== 跨进程交互 ==================
+    K -->|连接请求| D
+    L -->|请求数据| E
+    G -->|响应数据| M
+```
 
 ### 高并发服务器
 
