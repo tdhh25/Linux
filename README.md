@@ -219,11 +219,11 @@ int listen(int sockfd, int backlog);
  *
  * @brief   从已完成连接队列的头部取出一个已建立的连接，如果队列为空，accept()会阻塞，直到有新的连接建立
  * 
- * @param[in]   sockfd      处于LISTEN状态的监听Socket描述符
+ * @param[in]       sockfd      处于LISTEN状态的监听Socket描述符
  *
- * @param[out]   addr       指向sockaddr结构体的指针，用于获取发起连接的那个客户端的地址信息
+ * @param[out]      addr        指向sockaddr结构体的指针，用于获取发起连接的那个客户端的地址信息
  * 
- * @param[inout]   addrlen    输入时为addr的大小，输出时为客户端addr实际大小
+ * @param[inout]    addrlen     输入时为addr的大小，输出时为客户端addr实际大小
  * 
  * @return      状态码:
  *              •  fd   → 返回一个新的、非负的Socket描述符
