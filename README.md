@@ -185,7 +185,7 @@ int socket(int domain, int type, int protocol);
  *
  * @param[in]   addr        指向包含地址信息的结构体指针
  * 
- * @param[in]   addrlen     地址结构体的长度
+ * @param[in]   addrlen     addr结构体的长度
  * 
  * @return      状态码:
  *              •  0    → 成功
@@ -223,7 +223,7 @@ int listen(int sockfd, int backlog);
  *
  * @param[out]   addr       指向sockaddr结构体的指针，用于获取发起连接的那个客户端的地址信息
  * 
- * @param[out]   addrlen    输入时为addr的大小，输出时为客户端addr实际大小
+ * @param[inout]   addrlen    输入时为addr的大小，输出时为客户端addr实际大小
  * 
  * @return      状态码:
  *              •  fd   → 返回一个新的、非负的Socket描述符
