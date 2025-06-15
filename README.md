@@ -195,6 +195,65 @@ int socket(int domain, int type, int protocol);
  */
 int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
+/**
+ * =============================================================================
+ * @header #include <sys/types.h> #include <sys/socket.h>
+ *
+ * @brief   将一个主动连接的Socket（通常是调用socket()和bind()之后的Socket）转换为被动监听的Socket
+ * 
+ * @param[in]   sockfd      已成功绑定(bind())到本地地址和端口的Socket描述符
+ *
+ * @param[in]   backlog     连接请求队列的最大长度
+ * 
+ * @return      状态码:
+ *              •  0    → 成功
+ *              •  -1   → 失败，并设置errno
+ * 
+ * =============================================================================
+ */
+int listen(int sockfd, int backlog);
+
+/**
+ * =============================================================================
+ * @header #include <sys/types.h> #include <sys/socket.h>
+ *
+ * @brief   从已完成连接队列的头部取出一个已建立的连接，如果队列为空，accept()会阻塞，直到有新的连接建立
+ * 
+ * @param[in]   sockfd      处于LISTEN状态的监听Socket描述符
+ *
+ * @param[out]   addr       指向sockaddr结构体的指针，用于获取发起连接的那个客户端的地址信息
+ * 
+ * @param[out]   addrlen    输入时为addr的大小，输出时为客户端addr实际大小
+ * 
+ * @return      状态码:
+ *              •  fd   → 返回一个新的、非负的Socket描述符
+ *              •  -1   → 失败，并设置errno
+ * 
+ * =============================================================================
+ */
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+
+/**
+ * =============================================================================
+ * @header #include <sys/types.h> #include <sys/socket.h>
+ *
+ * @brief   从已完成连接队列的头部取出一个已建立的连接，如果队列为空，accept()会阻塞，直到有新的连接建立
+ * 
+ * @param[in]   sockfd      客户端的socket函数返回值
+ *
+ * @param[in]   addr        指定目标服务器的网络地址和端口
+ * 
+ * @param[out]  addrlen     指定 serv_addr 结构体的实际大小
+ * 
+ * @return      状态码:
+ *              •  0    → 连接/绑定成功
+ *              •  -1   → 失败，并设置errno
+ * 
+ * =============================================================================
+ */
+int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+
+
 
 ```
 
