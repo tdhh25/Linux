@@ -1,5 +1,10 @@
 # Linux
 
+## uboot
+
+下载链接
+https://ftp.denx.de/pub/u-boot/
+
 ## 网络编程
 
 ### 网络基础
@@ -59,6 +64,57 @@ graph TD
 IP协议
 
 TCP协议
+
+#### 三次握手和四次挥手
+三次握手
+```mermaid
+sequenceDiagram
+    participant Client as 客户端
+    participant Server as 服务器
+
+    Note over Client: 初始状态：CLOSED
+    Note over Server: 初始状态：LISTEN
+
+    Client->>Server: 1. SYN (seq=x, SYN=1)
+    Note left of Client: SYN_SENT 状态
+    Server->>Client: 2. SYN-ACK (seq=y, ack=x+1, SYN=1, ACK=1)
+    Note right of Server: SYN_RCVD 状态
+    Client->>Server: 3. ACK (seq=x+1, ack=y+1, ACK=1)
+    Note left of Client: ESTABLISHED 状态
+    Note right of Server: ESTABLISHED 状态
+```
+
+四次挥手
+```mermaid
+sequenceDiagram
+    participant Client as 客户端
+    participant Server as 服务器
+
+    Note over Client: ESTABLISHED 状态
+    Note over Server: ESTABLISHED 状态
+
+    # 第一次挥手：客户端发起关闭请求
+    Client->>Server: 1. FIN (seq=u, FIN=1)
+    Note left of Client: FIN_WAIT_1 状态
+
+    # 第二次挥手：服务器确认关闭请求
+    Server->>Client: 2. ACK (seq=v, ack=u+1, ACK=1)
+    Note right of Server: CLOSE_WAIT 状态
+    Note left of Client: FIN_WAIT_2 状态
+
+    # 第三次挥手：服务器发起关闭请求
+    Server->>Client: 3. FIN (seq=w, ack=u+1, FIN=1)
+    Note right of Server: LAST_ACK 状态
+
+    # 第四次挥手：客户端确认关闭请求
+    Client->>Server: 4. ACK (seq=u+1, ack=w+1, ACK=1)
+    Note left of Client: TIME_WAIT 状态 (等待 2MSL)
+    Note right of Server: CLOSED 状态
+    
+    # 客户端最终关闭
+    Note over Client: 等待 2MSL 超时
+    Note left of Client: CLOSED 状态
+```
 
 ### Socket编程
 
@@ -800,121 +856,3 @@ inline long copy_to_user(void __user *to, const void *from, long n)
 inline long copy_from_user(void *to, const void __user *from, long n)
 -返回值：未成功拷贝的字节数，0代表完全成功
 ```
-
-### 设备树
-
-#### 基本概念
-设备树是描述硬件配置的数据结构，因为语法结构像树一样，所以叫做设备树
-
-DT: Device Tree
-dts： device tree source
-dtsi: device tree source include
-dtb: device tree blob
-dtc: device tree compiler
-
-dts、dtsi和dtb之间的关系：
-```mermaid
-graph LR
-A[dts、dtsi] ---> |DTC|B[dtb]
-```
-
-#### 编译设备树
-编译设备树  
-    
-    dtc -I dts -O dtb -o xxx.dtb xxx.dts
-
-反编译设备树
-    
-    dtc -I dtb -O dts -o xxx.dts xxx.dtb
-
-#### 设备树的语法
-- 节点名称
-    在对节点命名的时候，一般要体现设备的类型，比如网口命名成ethernet
-    对于名称一般要遵循下面的命令格式：
-
-        [标签]:<名称>[@<设备地址>]
-    其中，[标签]和[@<设备地址>]是可选项，<名称>是必选项，设备地址没有实际意义，只是方便阅读
-
-- #address-cell和#size-cells属性
-    #address-cell和#size-cells用来描述子节点中的reg信息中的地址和长度信息
-
-- reg属性
-    reg属性可以用来描述地址信息，比如寄存器的地址
-    reg属性的格式如下：
-
-        reg = <地址1 长度1 地址2 长度2>
-
-
-举例：
-
-    node1{
-        #address-cells = <1>;
-        #size-cells = <1>;
-        node1-child{
-            reg = <0x02200000 0x4000>
-        };
-    };
-    或者
-    node1{
-        #address-cells = <2>;
-        #size-cells = <0>;
-        node1-child{
-            reg = <0x00 0x01>
-        };
-    }; 
-
-- model属性
-    model属性的值是一个字符串，一般用model描述一些信息，比如设备的名称、名字
-
-- device_type属性
-    device_type属性的值是字符串，只用于cpu节点或者memory节点进行描述 
-
-    举例1：
-
-        memory@30000000 {
-            device_type = "memory";
-            reg = <0x30000000 0x4000000>;
-        };
-
-    举例2：
-
-        cpu1: cpu@1 {
-            device_type = "cpu";
-            compatible = "arm,cortex-a35", "arm,armv8";
-            reg = <0x0 0x1>;
-        };
-
-- compatible属性
-    表示“兼容”
-
-- chosen特殊节点
-    chosen节点是固件（如U-Boot）与操作系统之间传递配置信息的桥梁
-    典型属性：
-    
-        bootargs: 内核启动参数（如文件系统挂载、网络配置等）
-        stdout-path: 定义标准输出的设备路径（如串口）
-        initrd-start 和 initrd-end: 初始RAM磁盘的地址范围
-
-- aliases特殊节点
-    aliases特殊节点用来定义别名
-
-    举例：
-
-        aliases{
-            mmc0 = &sdmmc0;
-            mmc1 = &sdmmc1;
-            mmc2 = &sdhci;
-            serial0 = "/simp;e@fe000000/serial@11c500";
-        }
-
-- 自定义属性
-    设备树中规定的属性有时候并不能满足我们的需求，这时候我们可以自定义属性
-
-    举例：
-    
-        pinnum = <0 1 2 3 4>
-
-#### 中断
-- 在中断控制器中，必须有一个属性#interrupt-cells，表示其他节点如果使用这个中断控制器需要几个cell来表示使用哪一个中断
-- 在中断控制器中，必须有一个属性interrupt-controller，表示它是中断控制器
-- 在设备树中使用中断，需要使用属性interrupt-parent=<&xxx>表示中断信号链接的是哪个中断控制器
