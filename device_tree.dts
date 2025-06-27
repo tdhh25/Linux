@@ -5,10 +5,10 @@
  * 预编译命令
  * 使用cpp工具将xxxx.dts文件中的头文件展开，生成一个临时文件xxxx.dtb.dts.tmp
  * cpp -nostdinc -I[dir_with_dts_includes] -x assembler-with-cpp [src_dts_file] > [tmp_dts_file]
- * -nostdinc：不使用标准的系统头文件目录，避免不必要的报错。
- * -I[dir_with_dts_includes]：这里是头文件的目录，如果就是在当前目录就用-I.
- * [src_dts_file] 是你的源设备树文件（.dts）
- * [tmp_dts_file] 是预处理后的输出文件，为了和瑞芯微保持统一我们到时候命名后最写成 xxxxxxxxxxxx.dtb.dts.tmp
+ * -nostdinc：                  不使用标准的系统头文件目录，避免不必要的报错。
+ * -I[dir_with_dts_includes]：  这里是头文件的目录，如果就是在当前目录就用-I.
+ * [src_dts_file]：             是你的源设备树文件（.dts）
+ * [tmp_dts_file]：             是预处理后的输出文件，为了和瑞芯微保持统一我们到时候命名后最写成 xxxxxxxxxxxx.dtb.dts.tmp
  */
 
 /*
