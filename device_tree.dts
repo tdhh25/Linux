@@ -23,6 +23,15 @@
  * 3、唯一性 
  */
 
+/* 属性值类型
+ * 1、字符串    compatiable = "led"
+ * 2、整数      reg = <0x1000>
+ * 3、数组      reg = <0x1000, 0x10>
+ * 4、列表      interrupts = <0 39 4>
+ * 5、空值
+ * 6、引用      gpio = <&gpio1 RK_PB0 GPIO_ACTIVE_LOW>
+ */
+
 // 节点
 // 标签: 节点名[@单元地址] { 标签: 和 @单元地址不是必须的
 //     子节点名1 {
@@ -44,22 +53,29 @@
 //#include "xxx.h"        //c语言头文件包含语法，因为不是标准的设备树语法，所以需要预编译, 预编译看上面的预编译命令
 
 / {//这是根节点
+    model = "Raspberry Pi 4 Model B";   //model属性，字符串值，作用是描述硬件型号
+    compatible = "ti,omap3-uart";       //compatible属性，字符串列表，驱动匹配关键，格式："制造商,型号"
+    cpu {
+        device_type = "cpu";            //device_type属性，字符串值，设备类型（CPU/内存等特殊节点使用）
+    };
+
     node: node1 {
-        node1@0x01 {
+        #address-cells = <2>;               //address-cells属性，整数，子节点reg属性的地址字段数量(通常为1/2)
+        #size-cells = <2>;                  //size-cells属性，整数，子节点reg属性的长度字段数量(通常为1/2)
+        node1_1@0x01 {
             // 这里加上单元地址就要加上reg属性，不然会有警告Warning (unit_address_vs_reg): Node /node1/node1_child1@0x01 has a unit name, but no reg property
             // 这个单元地址还有规避重复命名的作用
+            reg = <0x0 0xfe5d0000 0x0 0x1000>; //reg属性，整数列表，寄存器地址和长度，根据父节点的address-cells和size-cells的修饰，0xfe5d0000就是寄存器地址，0x1000就是长度
         };
-        node1 {
+        node1_1 {
         };
     };
     node2 {
-        node1 {
+        node1_1 {
             // 同一层级外，节点命名是可以相同的，类似于文件？
         };
     };
 };//根节点定义结束
-
-/dts-v1/;
 
 // 通过标签的方式追加后反编译出来的结果
 // /dts-v1/;
@@ -85,6 +101,7 @@
 // };
 
 &node { //通过标签的方式往node1追加node_add
+    status = "okay";    //status属性，字符串值，设备状态："okay"（启用）、"disabled"（禁用）
     node_add {
 
     };
