@@ -1,3 +1,4 @@
+This is the remaining task that needs to be done, which will eventually turn into the content of environment setup
 # Linux
 
 ## uboot
@@ -13,7 +14,7 @@ https://ftp.denx.de/pub/u-boot/
 
 ## shell
 
-## Makefile
+## GNU make
 
 ## 环境搭建
 
