@@ -41,7 +41,6 @@ int hello_release (struct inode *inode, struct file *file)
 	return 0;
 }
 
-
 static struct file_operations hello_drv = {
 	.owner = THIS_MODULE,
 	.read = &hello_read,

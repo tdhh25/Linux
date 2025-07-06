@@ -11,6 +11,7 @@ struct gpios_desc {
 	char* name;
 	int key;
 };
+
 static int led_major;
 static char led_buff[2];
 static struct class* led_class;
