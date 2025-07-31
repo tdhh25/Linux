@@ -42,3 +42,14 @@
 ![步骤17](image/step17.png)
 
 一路继续，直到安装完成
+
+### ssh
+获取最新的软件源信息：apt update
+
+安装ssh：apt install openssh-server
+
+启动ssh服务：systemctl start ssh
+
+开机自启ssh：systemctl enable ssh
+
+检查ssh服务状态：systemctl status ssh
