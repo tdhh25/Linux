@@ -53,3 +53,6 @@
 开机自启ssh：systemctl enable ssh
 
 检查ssh服务状态：systemctl status ssh
+
+### 配置网络
+安装网络工具：sudo apt install net-tools
