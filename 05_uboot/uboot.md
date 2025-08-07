@@ -1,9 +1,137 @@
 
-# uboot
+## uboot
+
+### lds
+
+GNU LD手册：  
+&emsp;https://sourceware.org/binutils/docs/ld/
+
+### 脚本整体结构
+```ld
+/* 全局设置 */
+OUTPUT_FORMAT(...)    // 定义输出文件格式
+elf32-littlearm：ARM 32位小端
+elf32-bigarm：ARM 32位大端
+elf64-littleaarch64：ARM 64位小端
+elf32-i386：x86 32位
+elf64-x86-64：x86_64 64位
+elf32-powerpc：PowerPC 32位
+elf64-powerpc：PowerPC 64位
+elf32-riscv：RISC-V 32位
+elf64-risc：RISC-V 64位
+
+OUTPUT_ARCH(...)      // 定义目标架构
+ARM 32位：arm
+ARM 64位 (AArch64)：aarch64
+RISC-V 32位：riscv
+RISC-V 64位：riscv:rv64
+MIPS 32位小端：mipsel
+MIPS 32位大端：mips
+PowerPC 32位：powerpc:common
+x86 32位：i386
+x86_64 位：i386:x86-64
+LoongArch 64位：loongarch
+
+ENTRY(...)            // 定义程序入口点
+
+/* 可选：内存区域定义 */
+MEMORY {
+    ROM (rx) : ORIGIN = 0x00000000, LENGTH = 256K
+    RAM (rwx): ORIGIN = 0x80000000, LENGTH = 64M
+}
+
+/* 核心：段布局定义 */
+SECTIONS
+{
+    /* 段1定义 */
+    .text : { ... } > ROM
+    
+    /* 段2定义 */
+    .data : { ... } > RAM AT> ROM
+    
+    /* 特殊段 */
+    /DISCARD/ : { ... }
+}
+```
+### 核心组件
+1. 全局设置指令
+
+|指令|作用|示例|
+|---|---|---|
+|OUTPUT_FORMAT|指定文件输出格式|OUTPUT_FORMAT("elf32-littlearm")|
+|OUTPUT_ARCH|指定处理器架构|OUTPUT_ARCH(arm)|
+|ENTRY|指定程序入口|ENTRY(_start)|
+
+2. 内存区域定义  
+
+    语法:<br> 
+    &emsp;MEMORY {<br>
+    &emsp;&emsp;<名称>(<属性>): ORIGIN = <起始地址>，LENGTH = <长度>  
+    &emsp;}
+
+    - 属性： r：可读 w：可写 x：可执行
+
+    示例：
+```shell
+MEMORY {
+    FLASH(rx): ORIGIN = 0x08000000，LENGTH = 512K
+    SRAM(rwx): ORIGIN = 0x20000000，LENGTH = 128K
+}
+```
+
+3. 段布局定义（SECTIONS核心内容）
+    - 语法:<br>
+    &emsp;<段名> [<地址>] : [AT(<加载地址>)]<br>
+    &emsp;{<br>
+    &emsp;&emsp;<内容><br>
+    &emsp;} [> <内存区域>]<br>
+
+    - 位置控制
+
+    |语法|作用|示例|
+    |---|---|---|
+    |. = <值>;|设置当前位置|. = 0x87800000|
+    |. += <值>;|当前位置偏移|. += 0x1000|
+    |ALIGN(<对齐>)|地址对齐|. = ALIGN(4)|
+
+    - 输入段选择器
+
+        基础语法：
+        &emsp;输入文件模式(段名)
+        - 输入文件模式，可以是通配符 *（所有文件）、文件名（如 start.o）或带路径的文件名
+        - 段名，目标文件中的段名称（如 .text、.data、.vectors 等）
+
+    |模式|作用|示例|
+    |---|---|---|
+    |*(.text)|所有文件的.text段|合并所有.text|
+    |start.o(.vectors)|特定文件的段|仅处理start.o的.vectors|
+    |*(.text .rodata)|多段合并|同时包含.text和.rodata|
+    |KEEP(*(.init))|防止优化移除|关键启动代码|
+
+    - 符号定义  
+    语法：  
+    &emsp;<符号名> = <表达式>;  
+    用途：  
+    &emsp;- 标记段边界，__bss_start = .;  
+    &emsp;- 计算长度，__data_len = __data_end - __data_start;
+
+   - 特殊段处理
+```ld
+    /DISCARD/ : {
+    *(.comment)     // 丢弃注释段
+    *(.note.*)      // 丢弃所有note段
+}
+```
 
 cpu，ARM公司设计的ip内核，高速的核心处理单元，放在u-boot/arch/arm/cpu
 
 board, 半导体公司设计的部分，i2c/uart等比较慢的外设，放在u-boot/board
+
+### 目录结构
+
+链接脚本，放在u-boot/arch/arm/cpu/u-boot.lds
+
+配置文件，configs目录
 
 整个代码的入口，u-boot/arch/arm/cpu/start.S
 
