@@ -95,7 +95,7 @@ ARM有37个寄存器：
   - 由于ARM的流水线机制，当正确读取pc的值时，pc = current_address + 8
   - 使用str/stm保存r15时，保存的可能是当前地址加8，也有可能是当前地址加12
 
-##### 程序状态寄存器
+##### 状态寄存器
 - cpsr可以在任意处理器模式下访问
 - 每种异常模式都有一个专用的SPSR（备份程序状态寄存器）。当特定的异常中断发生时，保存CPSR的内容到SPSR，异常中断程序退出时，用SPSR恢复CPSR
 - CPSR和SPSR的格式如下
@@ -147,13 +147,101 @@ ARM指令可以分为6种：跳转指令、数据处理指令、程序状态寄�
 &emsp;ARM中有两种方法可以实现程序的跳转：
 &emsp;&emsp;(1)跳转指令，当前指令向前/向后32MB的地址空间跳转
 &emsp;&emsp;(2)pc寄存器写入目标地址值，4G地址上任意跳转
-  
+
 - B/BL，跳转指令
 
 | 位域 | 31~28 | 27~25 | 24 | 23~0 |
 |------|-------|-------|----|------|
-| **含义** | `cond` | `101` | `L` | `signed_immed_24` |
+| 含义 | cond | 101 | L |`signed_immed_24 |
 
 &emsp;语法格式：
 &emsp;&emsp;B {L} {< cond >} < target_address >
-&emsp;当有L的时候，PC的值将保存到LR寄存器
+&emsp;&emsp;（1）当有L的时候，PC的值将保存到LR寄存器
+&emsp;&emsp;（2）101代表分支指令
+
+### ARM指令集
+
+#### 状态寄存器访问指令
+
+##### MRS
+
+指令格式
+```assembly
+  MRS {<cond>} <Rd>, <CPSR>
+  MRS {<cond>} <Rd>, <SPSR>
+```
+
+作用
+&emsp;指令用于将状态寄存器的内容传送到通用寄存器中
+
+二进制编码
+//todo
+
+##### MSR
+
+指令格式
+```assembly
+  MSR {<cond>} CPSR_<fields>, #<immediate>
+  MSR {<cond>} CPSR_<fields>, <Rm>
+  MSR {<cond>} SPSR_<fields>, #<immediate>
+  MSR {<cond>} SPSR_<fields>, <Rm>
+```
+
+作用
+&emsp;指令用于通用寄存器的内容/立即数传送到状态寄存器中
+
+二进制编码
+//todo
+
+#### 数据处理指令
+
+##### BIC位清除指令
+指令格式
+```assembly
+  BIC {<cond>} {S} <Rd>, <Rn>, <shifter_operand>
+  BIC {<cond>} {S} <Rd>, <shifter_operand> //Rd同时作为Rn使用
+```
+
+作用
+&emsp;指令将< shifter_operand >的数值与寄存器Rn的值的反码按位做逻辑与操作，并将结果存到寄存器Rd中
+
+二进制编码
+//todo
+
+##### ORR逻辑或操作指令
+指令格式
+```assembly
+  ORR {<cond>} {S} <Rd>, <Rn>, <shifter_operand>
+```
+
+作用
+&emsp;指令将< shifter_operand >的数值与寄存器Rn的值按位做逻辑或操作，并将结果存到寄存器Rd中
+
+二进制编码
+//todo
+
+#### 协处理器指令
+
+##### MCR(ARM寄存器到协处理器寄存器的数据传送指令)
+指令格式
+```assembly
+  MCR{<cond>} p15, <opcode_1>, <Rd>, <CRn>, <CRm>, <opcode_2>
+```
+
+作用
+&emsp;指令将ARM处理器的寄存器中的数据传送到协处理器的寄存器中
+
+二进制编码
+//todo
+
+##### MRC(协处理器寄存器到ARM寄存器的数据传送指令)
+指令格式
+```assembly
+  MRC {<cond>} p15, <opcode_1>, <Rd>, <CRn>, <CRm>, <opcode_2>
+```
+
+作用
+&emsp;指令将协处理器的寄存器中的数值传送到ARM处理器的寄存器中
+
+二进制编码
+//todo

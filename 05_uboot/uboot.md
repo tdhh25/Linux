@@ -1,131 +1,8 @@
 
 ## uboot
 
-### lds
-
-GNU LD手册：  
-&emsp;https://sourceware.org/binutils/docs/ld/
-
-### 脚本整体结构
-```ld
-/* 全局设置 */
-OUTPUT_FORMAT(...)    // 定义输出文件格式
-elf32-littlearm：ARM 32位小端
-elf32-bigarm：ARM 32位大端
-elf64-littleaarch64：ARM 64位小端
-elf32-i386：x86 32位
-elf64-x86-64：x86_64 64位
-elf32-powerpc：PowerPC 32位
-elf64-powerpc：PowerPC 64位
-elf32-riscv：RISC-V 32位
-elf64-risc：RISC-V 64位
-
-OUTPUT_ARCH(...)      // 定义目标架构
-ARM 32位：arm
-ARM 64位 (AArch64)：aarch64
-RISC-V 32位：riscv
-RISC-V 64位：riscv:rv64
-MIPS 32位小端：mipsel
-MIPS 32位大端：mips
-PowerPC 32位：powerpc:common
-x86 32位：i386
-x86_64 位：i386:x86-64
-LoongArch 64位：loongarch
-
-ENTRY(...)            // 定义程序入口点
-
-/* 可选：内存区域定义 */
-MEMORY {
-    ROM (rx) : ORIGIN = 0x00000000, LENGTH = 256K
-    RAM (rwx): ORIGIN = 0x80000000, LENGTH = 64M
-}
-
-/* 核心：段布局定义 */
-SECTIONS
-{
-    /* 段1定义 */
-    .text : { ... } > ROM
-    
-    /* 段2定义 */
-    .data : { ... } > RAM AT> ROM
-    
-    /* 特殊段 */
-    /DISCARD/ : { ... }
-}
-```
-### 核心组件
-1. 全局设置指令
-
-|指令|作用|示例|
-|---|---|---|
-|OUTPUT_FORMAT|指定文件输出格式|OUTPUT_FORMAT("elf32-littlearm")|
-|OUTPUT_ARCH|指定处理器架构|OUTPUT_ARCH(arm)|
-|ENTRY|指定程序入口|ENTRY(_start)|
-
-2. 内存区域定义  
-
-    语法:<br> 
-    &emsp;MEMORY {<br>
-    &emsp;&emsp;<名称>(<属性>): ORIGIN = <起始地址>，LENGTH = <长度>  
-    &emsp;}
-
-    - 属性： r：可读 w：可写 x：可执行
-
-    示例：
-```shell
-MEMORY {
-    FLASH(rx): ORIGIN = 0x08000000，LENGTH = 512K
-    SRAM(rwx): ORIGIN = 0x20000000，LENGTH = 128K
-}
-```
-
-3. 段布局定义（SECTIONS核心内容）
-    - 语法:<br>
-    &emsp;<段名> [<地址>] : [AT(<加载地址>)]<br>
-    &emsp;{<br>
-    &emsp;&emsp;<内容><br>
-    &emsp;} [> <内存区域>]<br>
-
-    - 位置控制
-
-    |语法|作用|示例|
-    |---|---|---|
-    |. = <值>;|设置当前位置|. = 0x87800000|
-    |. += <值>;|当前位置偏移|. += 0x1000|
-    |ALIGN(<对齐>)|地址对齐|. = ALIGN(4)|
-
-    - 输入段选择器
-
-        基础语法：
-        &emsp;输入文件模式(段名)
-        - 输入文件模式，可以是通配符 *（所有文件）、文件名（如 start.o）或带路径的文件名
-        - 段名，目标文件中的段名称（如 .text、.data、.vectors 等）
-
-    |模式|作用|示例|
-    |---|---|---|
-    |*(.text)|所有文件的.text段|合并所有.text|
-    |start.o(.vectors)|特定文件的段|仅处理start.o的.vectors|
-    |*(.text .rodata)|多段合并|同时包含.text和.rodata|
-    |KEEP(*(.init))|防止优化移除|关键启动代码|
-
-    - 符号定义  
-    语法：  
-    &emsp;<符号名> = <表达式>;  
-    用途：  
-    &emsp;- 标记段边界，__bss_start = .;  
-    &emsp;- 计算长度，__data_len = __data_end - __data_start;
-
-   - 特殊段处理
-```ld
-    /DISCARD/ : {
-    *(.comment)     // 丢弃注释段
-    *(.note.*)      // 丢弃所有note段
-}
-```
-
-cpu，ARM公司设计的ip内核，高速的核心处理单元，放在u-boot/arch/arm/cpu
-
-board, 半导体公司设计的部分，i2c/uart等比较慢的外设，放在u-boot/board
+下载地址：
+&emsp;https://ftp.denx.de/pub/u-boot/
 
 ### 目录结构
 
@@ -140,6 +17,134 @@ board, 半导体公司设计的部分，i2c/uart等比较慢的外设，放在u-
 - u-boot/arch/arm/include
 
 ### 启动机制
+#### 恩智浦imx6ull启动机制
+
+boot ROM支持NOR flash、NAND flash、oneNAND flash、SD/MMC、Serial NOR flash and EEPROM以及Quad SPI flash
+
+##### boot mode
+- 引导模式取决于BOOT_MODE[1:0]寄存器
+- BOOT_MODE0和BOOT_MODE1在POR_B的上升沿被初始化（锁存），后来的状态不会影响BOOT_MODE[1:0]
+- BOOT_MODE0的状态可以从BMOD[1:0] (SRC_SBMR2) 读到
+
+|BOOT_MODE[1:0]|boot type|
+|---|---|
+|00|boot from fuse|
+|01|serial downloader|
+|10|internal boot|
+|11|reserved|
+
+##### HAB(high-assurance boot)
+
+##### 内部启动模式
+boot ROM code执行硬件初始化，从选择的设备加载程序镜像，使用HAB库执行镜像验证，然后跳转到程序镜像中衍生出的一个地址
+
+
+##### 设备初始化
+
+- ROM/RAM的内存映射
+![ROM/RAM的内存映射](../image/memory_map.png)
+
+- MMU/Cache
+    - MMU和Cache可以加快引导速度
+    - L1指令Cache在镜像下载开始时使能
+    - L1数据Cache、L2 Cache以及MMU在镜像认证时使能
+
+- 异常处理
+    - 异常向量位于ROM的开始，用于映射除复位以外所有的ARM异常到内部RAM中的异常向量表
+    - cpu0的引导阶段，RAM向量指向ROM中的串行下载器
+    - 
+
+- 引导阶段的中断处理
+&emsp;引导ROM程序执行中断被关闭
+
+- persistent bit
+
+##### 程序镜像
+    
+程序镜像需要包含以下内容image vertor table、boot data、device configuration data以及user code and data
+
+- IVT
+    - IVT是引导设备中的数据结构，供boot ROM读取
+    - IVT在一个固定的地址，不同的引导设备对应不同的IVT偏移地址以及程序加载大小
+    - IVT结构
+
+|引导设备类型|ivt偏移|初始加载区域大小|
+|---|---|---|
+|NOR|4KB|整个镜像大小|
+|oneNAND|256B|1KB|
+|SD/MMC/eSD/eMMC/SDXC|1KB|4KB|
+|SPI EEPROM|1KB|4KB|
+
+|IVT format|
+|---|
+|header|
+|entry：镜像中第一条指令的绝对地址|
+|reserved1|
+|dcd：镜像中DCD的绝对地址|
+|boot：引导数据的绝对地址|
+|self：IVT的绝对地址|
+|csf：HAB库使用的命令序列文件的绝对地址|
+|reserved2|
+
+Header
+|Tag|Length|Version|
+|---|---|---|
+|0xd2|IVT的长度，包括Header|0x41|
+
+- BOOT DATA
+
+引导数据的格式
+|内容|含义|
+|---|---|
+|start|镜像的绝对地址|
+|length|程序镜像的大小|
+|Plugin|插件标志|
+
+- DCD
+
+  - 根据IVT中的信息确定DCD表的位置
+  - DCD表被限制到1768 Bytes
+
+DCD表的数据格式
+|Header|
+|---|
+|[CMD]|
+|[CMD]|
+|...|
+
+Header
+|Tag|Length|Version|
+|---|---|---|
+|0xd2|DCD表的长度，包括Header|0x41|
+
+- 写数据命令
+
+|Sequence||
+|---|---|
+|0|Tag(0xCC) Length(写数据命令的长度，包括头部) Parameter|
+|1|Address（目标地址）|
+|2|Value/Mask（数据值/位掩码）|
+|3|Address|
+|4|Value/Mask|
+|...|...|
+
+Parameter
+|7~3|2~0|
+|---|---|
+|flags（命令行为的控制标志）|bytes(目标位置的宽度)|
+
+写数据命令的说明
+|Mask|Set|Action|Interpretation|
+|---|---|---|---|
+|0|0|*address = val_msk|write value|
+|0|1|*address = val_msk|write value|
+|1|0|*address &= ~val_msk|Clear bitmask|
+|1|1|*address |= val_msk|Set bitmask|
+
+- 校验数据命令
+- NOP命令
+- 解锁命令
+
 6410启动机制
 1. iROM (Boot ROM) 阶段
 - 芯片上电后，首先执行固化在内部 iROM 中的代码
@@ -165,13 +170,13 @@ V210启动机制
 - iROM 代码执行基本的初始化工作，包括配置系统时钟、看门狗定时器等
 - iROM 代码根据预配置的启动顺序（例如 OM 引脚设置），从选定的外部存储器（如 NAND Flash、SD 卡等）中读取前 16KB 数据（uboot_spl.bin）
 
-1. BL1 (1st Stage Bootloader) 阶段
+2. BL1 (1st Stage Bootloader) 阶段
 - 读取到的 BL1 代码被加载到片内 SRAM（通常称为 Stepping Stone）去执行，绕开片内RAM的BL2，直接配置系统主内存，再把uboot.bin加载到动态DDR内存
 
-1. BL2 (2nd Stage Bootloader) 阶段
+3. BL2 (2nd Stage Bootloader) 阶段
 - 跳转到uboot主体（uboot.bin）的入口开始运行
 
-1. 操作系统 (OS) 加载阶段：
+4. 操作系统 (OS) 加载阶段：
 - BL2 最后跳转到操作系统内核的入口地址，将控制权完全移交给操作系统，启动过程完成
 
 ### uboot命令
