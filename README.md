@@ -56,3 +56,15 @@
 
 ### 配置网络
 安装网络工具：sudo apt install net-tools
+
+## 创建Source_Insight工程
+
+点击Project ---> New Project
+![步骤1](image/source_insight_1.png)
+
+![步骤2](image/source_insight_2.png)
+
+![步骤3](image/source_insight_3.png)
+
+Project ---> Synchronize Files
+![步骤4](image/source_insight_4.png)

@@ -107,3 +107,83 @@ Makefile 中“规则”就是描述在什么情况下、如何重建规则的�
 要想使用$，需要写$$
 
 order-only依赖
+
+### 规则
+
+#### 静态模式规则
+
+语法：
+&nbsp;&nbsp;&nbsp;&nbsp;目标: 目标模式: 依赖模式
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;命令
+- “目标”：是一系列的目标文件，可以包含通配符
+- “目标模式”和“依赖模式”：从目标模式的目标名字中抽取一部分字符串（称为“茎”）。使用“茎”替代依赖模式（PREREQ-PATTERNS）中的相应部分来产生对应目标的依赖文件
+
+```Makefile
+# 举一个例子
+obj/start.o: obj/%.c %.s
+
+start就是茎，依赖文件就是start.s
+```
+
+### 变量
+
+#### 自动变量
+
+```makefile
+$@: 规则的目标
+$<：规则的第一个依赖
+$^：规则的依赖列表
+```
+
+### 函数
+
+#### patsubst函数
+作用：
+&nbsp;&nbsp;&nbsp;&nbsp;用于模式替换
+
+基本语法：
+&nbsp;&nbsp;&nbsp;&nbsp;$(patsubst pattern,replacement,text)
+- 它会在 text 中查找匹配 pattern 的部分，并替换为 replacement
+- pattern: 要匹配的模式（可以包含通配符 %）
+- replacement: 替换模式（可以使用 % 来引用匹配的部分）
+- text: 要进行替换操作的文本
+
+#### foreach函数
+作用：
+&nbsp;&nbsp;&nbsp;&nbsp;用于对列表中的每个元素执行操作
+
+基本语法：
+&nbsp;&nbsp;&nbsp;&nbsp;$(foreach var, list, text)
+- var: 临时变量名，用于引用列表中的当前元素
+- list: 要遍历的列表
+- text: 对每个元素执行的操作
+
+说明：
+&nbsp;&nbsp;&nbsp;&nbsp;展开var和list的引用，text不展开；依次将list中的内容赋值给var，执行text表达式，知道list为空
+
+```Makfile
+# 举一个例子
+dirs := a b c d
+
+$foreach(dir $(dirs) $(wildcard $(dir)/*))
+
+会被展开成
+    $(wildcard a/*)
+    $(wildcard b/*)
+    $(wildcard c/*)
+    $(wildcard d/*)
+```
+
+#### wildcard函数
+作用：
+&nbsp;&nbsp;&nbsp;&nbsp;用于获取匹配指定模式的文件列表
+
+基本语法：
+&nbsp;&nbsp;&nbsp;&nbsp;$(wildcard pattern)
+
+#### notdir函数
+作用：
+&nbsp;&nbsp;&nbsp;&nbsp;用于从文件路径中提取文件名部分
+
+基本语法：
+&nbsp;&nbsp;&nbsp;&nbsp;$(notdir names...)
